@@ -1,0 +1,9 @@
+{
+  "name": "go-vue-tutorial-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "preinstall": "git submodule update --init",
+    "prestart": "git submodule update --remote"
+  }
+}

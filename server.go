@@ -13,7 +13,7 @@ func main(){
 	fs := http.FileServer(http.Dir("./dist"))
 	r.PathPrefix("/").Handler(fs)
 	http.Handle("/",r)
-	fmt.Println("Listening")
+	fmt.Println("Listening")	
 	log.Panic(
 		http.ListenAndServe(":3000", nil),
 	)
