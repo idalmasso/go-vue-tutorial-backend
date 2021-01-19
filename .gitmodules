@@ -1,7 +1,3 @@
-[submodule "go-vue-tutorial-frontend"]
-	path = go-vue-tutorial-frontend
-	url = https://github.com/idalmasso/go-vue-tutorial-frontend
-	branch = production
 [submodule "dist"]
 	path = dist
 	url = https://github.com/idalmasso/go-vue-tutorial-frontend
