@@ -1,4 +1,4 @@
-module github.com/idalmasso/go-vue-tutorial-backend
+module github.com/idalmasso/go_vue_tutorial_backend
 
 go 1.15
 
