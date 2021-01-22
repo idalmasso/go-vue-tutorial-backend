@@ -24,7 +24,7 @@ type post struct {
 	Comments []comment `json:"comments"`
 }
 //This is my "database", in memory... Will be changed in a real database in future...
-var posts []post
+var posts []post=make([]post, 0)
 //need an index for the array... When I'll delete the posts the index will have to go on...
 var index int=1
 
@@ -109,8 +109,8 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 	//If I'm here, there is no post with the id searched... 
 	http.Error(w, "Cannot find a post with the selected id", http.StatusNotFound)
 }
-//GetPosts will return all the posts actually in the array
-func GetPosts(w http.ResponseWriter, r *http.Request) {
+//getPosts will return all the posts actually in the array
+func getPosts(w http.ResponseWriter, r *http.Request) {
 	log.Println("Get post called")
 	sendJSONResponse(w, posts)
 }

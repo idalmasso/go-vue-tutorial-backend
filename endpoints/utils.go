@@ -10,7 +10,7 @@ import (
 
 //AddRouterEndpoints add the actual endpoints for api
 func AddRouterEndpoints(r *mux.Router) *mux.Router {
-	r.HandleFunc("/api/posts", GetPosts).Methods("GET")
+	r.HandleFunc("/api/posts", getPosts).Methods("GET")
 	r.HandleFunc("/api/posts", addPost).Methods("POST")
 	r.HandleFunc("/api/posts/{POST_ID}", deletePost).Methods("DELETE")
 	r.HandleFunc("/api/posts/{POST_ID}/comments", addComment).Methods("POST")
@@ -32,3 +32,4 @@ func sendJSONResponse(w http.ResponseWriter, data interface{}) {
 		return
 	}
 }
+
