@@ -28,17 +28,18 @@ type corsRouterDecorator struct {
 	R *mux.Router
 }
 
-func (c *corsRouterDecorator) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if origin := req.Header.Get("Origin"); origin != "" {
-		rw.Header().Set("Access-Control-Allow-Origin", origin)
-		rw.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, PATCH")
-		rw.Header().Add("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+func (c *corsRouterDecorator) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if origin := r.Header.Get("Origin"); origin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, PATCH")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
 	}
-		// Stop here if its Preflighted OPTIONS request
-	if req.Method == "OPTIONS" {
+		// Stop here if its Preflighted OPTIONS request, I just add an OK 
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 
-	c.R.ServeHTTP(rw, req)
+	c.R.ServeHTTP(w, r)
 }

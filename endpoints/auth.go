@@ -3,10 +3,10 @@ package endpoints
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/context"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -72,23 +72,36 @@ func createUser(w http.ResponseWriter, r *http.Request){
 	sendJSONResponse(w, struct {Token string}{ token })
 }
 
+func getTokenByToken(w http.ResponseWriter, r *http.Request){
+	//Here I already have the token checked... Just get the username from Request context
+	username, ok :=context.Get(r,"username").(string)
+	if !ok{
+		http.Error(w, "Cannot check username", http.StatusInternalServerError)
+		return
+	}
+	token, err:=createToken(username)
+	if err!=nil{
+		http.Error(w, "Cannot create token", http.StatusInternalServerError)
+		return
+	}
+	sendJSONResponse(w, struct {Token string}{ token })
+}
 
-func createToken(userid string) (string, error) {
+func createToken(username string) (string, error) {
   var err error
   //Creating Access Token
   
   atClaims := jwt.MapClaims{}
   atClaims["authorized"] = true
-  atClaims["user_id"] = userid
+  atClaims["username"] = username
   atClaims["exp"] = time.Now().Add(time.Minute * 15).Unix()
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	secret:=os.Getenv("ACCESS_SECRET")
-	if secret==""{
-		secret="sdmalncnjsdsmf"
-	}
+	secret:= getSecret()
   token, err := at.SignedString([]byte(secret))
   if err != nil {
      return "", err
   }
   return token, nil
 }
+
+
