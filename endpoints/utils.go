@@ -29,9 +29,10 @@ func AddRouterEndpoints(r *mux.Router) *mux.Router {
 	r.HandleFunc("/api/posts", checkTokenHandler(addPost)).Methods("POST")
 	r.HandleFunc("/api/posts/{POST_ID}", checkTokenHandler(deletePost)).Methods("DELETE")
 	r.HandleFunc("/api/posts/{POST_ID}/comments", checkTokenHandler(addComment)).Methods("POST")
-	r.HandleFunc("/api/auth/token", getTokenUserPassword).Methods("GET")
+	r.HandleFunc("/api/auth/login", getTokenUserPassword).Methods("POST")
 	r.HandleFunc("/api/auth/create-user", createUser).Methods("POST")
-	r.HandleFunc("/api/auth/token", checkTokenHandler(getTokenByToken)).Methods("POST")
+	r.HandleFunc("/api/auth/token", checkTokenHandler(getTokenByToken)).Methods("GET")
+	r.HandleFunc("/api/users/{USERNAME}", checkTokenHandler(getUser)).Methods("GET")
 	return r
 }
 

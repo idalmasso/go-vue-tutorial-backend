@@ -124,7 +124,7 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 }
 //getPosts will return all the posts actually in the array
 func getPosts(w http.ResponseWriter, r *http.Request) {
-	log.Println("Get post called")
+	log.Println("getPosts called")
 	sendJSONResponse(w, posts)
 }
 

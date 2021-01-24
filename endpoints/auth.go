@@ -36,7 +36,6 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 	
 	err=bcrypt.CompareHashAndPassword(passwordHash, []byte(u.Password))
 	if err!=nil{
-		http.Error(w, "Invalid password!", http.StatusForbidden)
 		return
 	}
 	token, err:=createToken(u.Username)
@@ -44,7 +43,7 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string}{ token })
+	sendJSONResponse(w, struct {Token string `json:"token"`}{ token })
 
 	
 	
@@ -69,7 +68,7 @@ func createUser(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string}{ token })
+	sendJSONResponse(w, struct {Token string `json:"token"`}{ token })
 }
 
 func getTokenByToken(w http.ResponseWriter, r *http.Request){
