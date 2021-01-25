@@ -5,12 +5,14 @@ import (
 	"log"
 	"net/http"
 
+	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
 	"github.com/idalmasso/go_vue_tutorial_backend/endpoints"
 
 	"github.com/gorilla/mux"
 )
 
 func main(){
+	mdb.Connect()
 	r := mux.NewRouter()
 	r=endpoints.AddRouterEndpoints(r)
 	fs := http.FileServer(http.Dir("./dist"))

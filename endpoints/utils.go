@@ -11,6 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
+	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
 )
 
 func getSecret() string{
@@ -79,10 +80,9 @@ func checkTokenHandler(next http.HandlerFunc) http.HandlerFunc{
 				return 
 			}
 			//check if username actually exists
-			if _, ok := users[username]; !ok{
+			if _, err:= mdb.FindUser(r.Context(), username); err!=nil{
 				http.Error(w, "Unauthorized, user not exists", http.StatusUnauthorized)
-				return 
-			} 
+			}
 			//Set the username in the request, so I will use it in check after!
 			context.Set(r, "username", username)
 		}

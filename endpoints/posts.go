@@ -4,35 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
-	"time"
+	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
+	commonLib "github.com/idalmasso/go_vue_tutorial_backend/common"
+	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
 )
-type comment struct {
-	ID   		 int      `json:"id"`
-	Username string   `json:"username"`
-	Post string    		`json:"post"`
-	Date time.Time 		`json:"date"`	
-}
-//post Struct is used as post structure...
-type post struct {
-	ID   		 int       `json:"id"`
-	Username string    `json:"username"`
-	Post string    		 `json:"post"`
-	Date time.Time 		 `json:"date"`
-	Comments []comment `json:"comments"`
-}
-//This is my "database", in memory... Will be changed in a real database in future...
-var posts []post=make([]post, 0)
-//need an index for the array... When I'll delete the posts the index will have to go on...
-var index int=1
 
 //addPost will get in Body a post with ONLY username and post-> need to add the others and save it
 func addPost(w http.ResponseWriter, r *http.Request) {
 	log.Println("addPost called")
-	var actualPost post
+	var actualPost commonLib.Post
 	err:=json.NewDecoder(r.Body).Decode(&actualPost)
 	if err!=nil{
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -42,14 +25,12 @@ func addPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot post for another user", http.StatusUnauthorized)
 		return 
 	}
-	actualPost.ID = index
-	index++
-	actualPost.Date=time.Now()
-	if actualPost.Comments== nil{
-		actualPost.Comments=make([]comment, 0)
+	if actualPost, err = mdb.AddSinglePost(r.Context(), actualPost); err!=nil{
+		//Care! THis is not the actual "nice" way to do this... I should create some new Error types 
+		http.Error(w, "Error inserting data", http.StatusInternalServerError)
+	}else{
+		sendJSONResponse(w,actualPost)
 	}
-	posts=append(posts, actualPost)
-	sendJSONResponse(w,actualPost)
 }
 //deletePost removes the post that is being passed. Get the id from the query
 func deletePost(w http.ResponseWriter, r *http.Request) {
@@ -60,24 +41,15 @@ func deletePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot find ID", http.StatusBadRequest)
 		return
 	}
-	id, err := strconv.Atoi(idString)
-	if err!=nil{
-		http.Error(w, "Cannot convert the id value to string", http.StatusBadRequest)
+	if err:=mdb.DeletePost(r.Context(), idString); err!=nil{
+		if strings.HasPrefix(err.Error(), "Not found") {
+			http.Error(w,"Cannot find the id", http.StatusNotFound)
+		}else{
+			http.Error(w, "Internal error: "+err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
-	for i:=0;i<len(posts);i++{
-		if posts[i].ID==id {
-			if !isUsernameContextOk(posts[i].Username, r){
-				http.Error(w, "Cannot delete post for another user", http.StatusUnauthorized)
-				return 
-			}
-			posts[i]=posts[len(posts)-1]
-			posts=posts[:len(posts)-1]
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-	}
-	http.Error(w, "Cannot find the requested id", http.StatusNotFound)
+	w.WriteHeader(http.StatusOK)
 }
 //addComment will get the comment in the body, and the id in the query
 func addComment(w http.ResponseWriter, r *http.Request) {
@@ -88,13 +60,8 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot find ID", http.StatusBadRequest)
 		return
 	}
-	id, err := strconv.Atoi(idString)
-	if err!=nil{
-		http.Error(w, "Cannot convert the id value to string", http.StatusBadRequest)
-		return
-	}
-	var actualComment comment
-	err = json.NewDecoder(r.Body).Decode(&actualComment)
+	var actualComment commonLib.Comment
+	err := json.NewDecoder(r.Body).Decode(&actualComment)
 	if err!=nil{
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -103,29 +70,25 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot comment post for another user", http.StatusUnauthorized)
 		return 
 	}
-	for i:=0;i<len(posts);i++{
-		if posts[i].ID==id {
-			//Now I have the post
-			var commMax int=0
-			for comm:=0;comm<len(posts[i].Comments);comm++{
-				if commMax<posts[i].Comments[comm].ID{
-					commMax=posts[i].Comments[comm].ID
-				}
-			}
-			actualComment.ID=commMax+1
-			actualComment.Date=time.Now()
-			posts[i].Comments = append(posts[i].Comments, actualComment)
-			sendJSONResponse(w, posts[i])
-			return
+	if post, err := mdb.AddComment(r.Context(), actualComment, idString); err!=nil{
+		if strings.HasPrefix(err.Error(), "Not found") {
+			http.Error(w,"Cannot find the id", http.StatusNotFound)
+		}else{
+			http.Error(w, "Internal error: "+err.Error(), http.StatusInternalServerError)
 		}
+		return
+	}	else	{
+		sendJSONResponse(w, post)
 	}
-	//If I'm here, there is no post with the id searched... 
-	http.Error(w, "Cannot find a post with the selected id", http.StatusNotFound)
 }
 //getPosts will return all the posts actually in the array
 func getPosts(w http.ResponseWriter, r *http.Request) {
 	log.Println("getPosts called")
-	sendJSONResponse(w, posts)
+	if posts, err:= mdb.GetAllPosts(r.Context());err!=nil{
+		http.Error(w, "Cannot read from DB", http.StatusInternalServerError)
+	}else{
+		sendJSONResponse(w, posts)
+	}
 }
 
 func isUsernameContextOk(username string, r *http.Request) bool {
