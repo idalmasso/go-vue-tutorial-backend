@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,14 +18,14 @@ var UserCollection *mongo.Collection
 
 //SetCollections sets the db and correct collection
 func SetCollections(c *mongo.Database) {
-	PostCollection = c.Collection("posts")
-	UserCollection = c.Collection("users")
+	PostCollection = c.Collection(os.Getenv("POSTS_COLLECTION_NAME"))
+	UserCollection = c.Collection(os.Getenv("USER_COLLECTION_NAME"))
 }
 
 //Connect connects to the DB and also set up the controllers
 func Connect() {
 	// Database Config
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI(os.Getenv("CONNECTION_STRING"))
 	client, err := mongo.NewClient(clientOptions)
 
 	//Set up a context required by mongo.Connect
@@ -40,7 +41,7 @@ func Connect() {
 	} else {
 		log.Println("Connected!")
 	}
-	db := client.Database("postsDB")
+	db := client.Database(os.Getenv("POSTS_DB_NAME"))
 	SetCollections(db)
 	return
 }

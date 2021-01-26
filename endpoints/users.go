@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -27,4 +28,33 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		sendJSONResponse(w, userReturn, http.StatusOK)
 	}
 
+}
+
+func editUserDescription(w http.ResponseWriter, r *http.Request) {
+	log.Println("editUserDescription called")
+	vars := mux.Vars(r)
+	username, ok := vars["USERNAME"]
+		if !ok {
+		http.Error(w, "Cannot find username in request", http.StatusBadRequest)
+		return
+	}
+	var userAPI commonLib.UserAPI
+	err:=json.NewDecoder(r.Body).Decode(&userAPI)
+	if err!=nil{
+		http.Error(w, "Not a valid json request", http.StatusBadRequest)
+		return
+	}
+	if userAPI.Username!=username || !isUsernameContextOk(username, r){
+		http.Error(w, "Cannot update a different user", http.StatusBadRequest)
+		return
+	}
+	var user commonLib.UserDB
+	user.Username = username
+	user.Description = userAPI.Description
+	if user, err := mdb.EditUserDescription(r.Context(), user); err!=nil {
+		http.Error(w, "Cannot find user", http.StatusNotFound) 
+	} else {
+		userAPI.Description = user.Description
+		sendJSONResponse(w, userAPI, http.StatusOK)
+	}
 }

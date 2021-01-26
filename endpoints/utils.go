@@ -34,6 +34,7 @@ func AddRouterEndpoints(r *mux.Router) *mux.Router {
 	r.HandleFunc("/api/auth/create-user", createUser).Methods("POST")
 	r.HandleFunc("/api/auth/token", checkTokenHandler(getTokenByToken)).Methods("GET")
 	r.HandleFunc("/api/users/{USERNAME}", checkTokenHandler(getUser)).Methods("GET")
+	r.HandleFunc("/api/users/{USERNAME}", checkTokenHandler(editUserDescription)).Methods("PATCH")
 	return r
 }
 
@@ -106,4 +107,15 @@ func checkToken (tokenString string) (*jwt.Token, bool) {
      return nil, false
   }
 	return token, true
+}
+
+func isUsernameContextOk(username string, r *http.Request) bool {
+	usernameCtx, ok:=context.Get(r, "username").(string)
+	if !ok{
+		return false
+	}
+	if usernameCtx!=username{
+		return false
+	}
+	return true
 }

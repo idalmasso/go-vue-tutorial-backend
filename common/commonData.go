@@ -9,7 +9,7 @@ import (
 //UserDB struct will contain the info about authentication. Password won't be saved, only password hash.
 type UserDB struct{
 	ID		primitive.ObjectID  `bson:"_id,omitempty"`
-	Username string 
+	Username string  
 	PasswordHash []byte 
 	Description string 
 }

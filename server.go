@@ -4,14 +4,22 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
 	"github.com/idalmasso/go_vue_tutorial_backend/endpoints"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main(){
+	err := godotenv.Load(".env")
+
+  if err != nil {
+    log.Fatalf("Error loading .env file")
+  }
+
 	mdb.Connect()
 	r := mux.NewRouter()
 	r=endpoints.AddRouterEndpoints(r)
@@ -21,7 +29,7 @@ func main(){
 	http.Handle("/",&corsRouterDecorator{r})
 	fmt.Println("Listening")	
 	log.Panic(
-		http.ListenAndServe(":3000", nil),
+		http.ListenAndServe(":"+os.Getenv("SERVER_PORT"), nil),
 	)
 }
 

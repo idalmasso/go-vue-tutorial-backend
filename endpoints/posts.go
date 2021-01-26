@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	commonLib "github.com/idalmasso/go_vue_tutorial_backend/common"
 	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
@@ -97,13 +96,3 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func isUsernameContextOk(username string, r *http.Request) bool {
-	usernameCtx, ok:=context.Get(r, "username").(string)
-	if !ok{
-		return false
-	}
-	if usernameCtx!=username{
-		return false
-	}
-	return true
-}

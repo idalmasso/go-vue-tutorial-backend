@@ -20,7 +20,7 @@ func GetAllPosts(c context.Context) ([]commonLib.Post,error){
 		log.Printf("Error while getting cursor, Reason: %v\n", err)
 		return nil, err
 	}
-	
+	posts  = make([]commonLib.Post, 0)
 	for cursor.Next(c) {
 		var post commonLib.Post
 		cursor.Decode(&post)
@@ -34,16 +34,17 @@ func AddSinglePost(c context.Context, post commonLib.Post) (commonLib.Post, erro
 	if post.Comments== nil{
 		post.Comments=make([]commonLib.Comment, 0)
 	}
-	if result, err := PostCollection.InsertOne(c, post); err!=nil{
+	result, err := PostCollection.InsertOne(c, post)
+	if  err!=nil{
 		return post, err
-	}else{
-		if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
-				post.ID = oid
-				return post, nil
-			} else {
-				return post, fmt.Errorf("Cannot get id from results")
-			}
 	}
+	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
+			post.ID = oid
+			return post, nil
+		} 
+		return post, fmt.Errorf("Cannot get id from results")
+			
+	
 }
 //AddComment adds a single comment to the post with id postID to the  db. Returns the newly post and also the error code to be used
 func AddComment(c context.Context,comment commonLib.Comment, postID string  ) (commonLib.Post,  error) {
@@ -61,10 +62,10 @@ func AddComment(c context.Context,comment commonLib.Comment, postID string  ) (c
 	pushValue := bson.M{"$push": bson.M{"comments": comment}}
 	result := PostCollection.FindOneAndUpdate(c, bson.M{"_id": objID}, pushValue, &opt)
 	if result.Err() != nil {
-		return post, fmt.Errorf("Cannot find and update post, reason: ", result.Err().Error())
+		return post, fmt.Errorf("Cannot find and update post, reason: %w", result.Err())
 	}
 	if err := result.Decode(&post); err != nil {
-		return post, fmt.Errorf("Not found post, reason: ", err)
+		return post, fmt.Errorf("Not found post, reason:  %w", err)
 	}
 	return post, nil
 }

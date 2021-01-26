@@ -7,6 +7,7 @@ import (
 	commonLib "github.com/idalmasso/go_vue_tutorial_backend/common"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 //FindUser finds a user from the usercollection
@@ -32,4 +33,22 @@ func AddUser(c context.Context, user commonLib.UserDB) (commonLib.UserDB,error){
 				return user, fmt.Errorf("Cannot get id from results")
 			}
 	}
+}
+//EditUserDescription edits a single user description (From patch)
+func EditUserDescription(c context.Context, user commonLib.UserDB) (commonLib.UserDB,error){
+	var updatedUser commonLib.UserDB
+	after := options.After
+	opt := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+	}
+	
+	result := UserCollection.FindOneAndUpdate(c, bson.M{"username": user.Username}, bson.M{"$set": bson.M{"description": user.Description}} ,&opt);
+	if  result.Err()!=nil{
+		return user,  result.Err()
+	}
+	if err := result.Decode(&updatedUser); err != nil {
+		return user, fmt.Errorf("Cannot decode: %w", err)
+	}	
+	return updatedUser, nil
+	
 }
