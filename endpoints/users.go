@@ -24,7 +24,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		var userReturn commonLib.UserAPI
 		userReturn.Username=user.Username
 		userReturn.Description = user.Description
-		sendJSONResponse(w, userReturn)
+		sendJSONResponse(w, userReturn, http.StatusOK)
 	}
 
 }

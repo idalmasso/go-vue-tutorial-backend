@@ -37,7 +37,7 @@ func AddRouterEndpoints(r *mux.Router) *mux.Router {
 	return r
 }
 
-func sendJSONResponse(w http.ResponseWriter, data interface{}) {
+func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	body, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Failed to encode a JSON response: %v", err)
@@ -45,7 +45,7 @@ func sendJSONResponse(w http.ResponseWriter, data interface{}) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(statusCode)
 	_, err = w.Write(body)
 	if err != nil {
 		log.Printf("Failed to write the response body: %v", err)

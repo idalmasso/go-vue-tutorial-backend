@@ -31,6 +31,7 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 	
 	err=bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(u.Password))
 	if err!=nil{
+		http.Error(w, "Wrong password", http.StatusUnauthorized)
 		return
 	}
 	token, err:=createToken(u.Username)
@@ -38,7 +39,7 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string `json:"token"`}{ token })
+	sendJSONResponse(w, struct {Token string `json:"token"`}{ token }, http.StatusOK)
 
 	
 	
@@ -64,13 +65,12 @@ func createUser(w http.ResponseWriter, r *http.Request){
 	//fOr now empty desc... Maybe another time we'll add some way to update the user
 	u.Description = ""
 	//If I'm here-> add user and return a token
-	if value, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); err!=nil{
+	value, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); 
+	if err!=nil{
 		http.Error(w, "Cannot generate password hash: "+err.Error(), http.StatusInternalServerError)
 		return
-	}else{
-		u.PasswordHash=value
-		
 	}
+	u.PasswordHash=value
 	if _, err= mdb.AddUser(r.Context(), u); err!=nil{
 		http.Error(w, "Cannot insert user in database: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -80,7 +80,7 @@ func createUser(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string `json:"token"`}{ token })
+	sendJSONResponse(w, struct {Token string `json:"token"`}{ token }, http.StatusCreated)
 }
 
 func getTokenByToken(w http.ResponseWriter, r *http.Request){
@@ -95,7 +95,7 @@ func getTokenByToken(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string}{ token })
+	sendJSONResponse(w, struct {Token string}{ token }, http.StatusOK)
 }
 
 func createToken(username string) (string, error) {

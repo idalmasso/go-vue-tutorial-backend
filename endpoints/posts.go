@@ -29,7 +29,10 @@ func addPost(w http.ResponseWriter, r *http.Request) {
 		//Care! THis is not the actual "nice" way to do this... I should create some new Error types 
 		http.Error(w, "Error inserting data", http.StatusInternalServerError)
 	}else{
-		sendJSONResponse(w,actualPost)
+		w.Header().Set("Location", "/posts/"+actualPost.ID.Hex())
+		sendJSONResponse(w,actualPost,http.StatusCreated)
+		//Update header to "created"
+		
 	}
 }
 //deletePost removes the post that is being passed. Get the id from the query
@@ -49,7 +52,7 @@ func deletePost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 //addComment will get the comment in the body, and the id in the query
 func addComment(w http.ResponseWriter, r *http.Request) {
@@ -76,9 +79,12 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 		}else{
 			http.Error(w, "Internal error: "+err.Error(), http.StatusInternalServerError)
 		}
-		return
-	}	else	{
-		sendJSONResponse(w, post)
+	}	else {
+		w.Header().Set("Location", "/posts/"+idString)
+		sendJSONResponse(w, post,http.StatusCreated)
+		//Update header to "created"
+		
+		
 	}
 }
 //getPosts will return all the posts actually in the array
@@ -87,7 +93,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	if posts, err:= mdb.GetAllPosts(r.Context());err!=nil{
 		http.Error(w, "Cannot read from DB", http.StatusInternalServerError)
 	}else{
-		sendJSONResponse(w, posts)
+		sendJSONResponse(w, posts, http.StatusOK)
 	}
 }
 
