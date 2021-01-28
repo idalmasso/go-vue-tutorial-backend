@@ -23,7 +23,7 @@ func main(){
 	mdb.Connect()
 	r := mux.NewRouter()
 	r=endpoints.AddRouterEndpoints(r)
-	fs := http.FileServer(http.Dir("./dist"))
+	fs := http.FileServer(http.Dir(os.Getenv("APP_DIR")))
 	r.PathPrefix("/").Handler(fs)
 	
 	http.Handle("/",&corsRouterDecorator{r})
