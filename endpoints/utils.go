@@ -14,8 +14,17 @@ import (
 	mdb "github.com/idalmasso/go_vue_tutorial_backend/database"
 )
 
-func getSecret() string{
-	secret:=os.Getenv("ACCESS_SECRET")
+func getAuthorizationSecret() string{
+	secret:=os.Getenv("ACCESS_SECRET_AUTHORIZATION")
+	if secret==""{
+		//That's surely a big secret this way...
+		secret="sdmalncnjsdsmfAuthorization"
+	}
+	return secret
+}
+
+func getAuthenticationSecret() string{
+	secret:=os.Getenv("ACCESS_SECRET_AUTHENTICATION")
 	if secret==""{
 		//That's surely a big secret this way...
 		secret="sdmalncnjsdsmf"
@@ -97,7 +106,7 @@ func checkToken (tokenString string) (*jwt.Token, bool) {
      if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
         return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
      }
-     return []byte(getSecret()), nil
+     return []byte(getAuthorizationSecret()), nil
 	})
 	if err!=nil{
 		return nil, false

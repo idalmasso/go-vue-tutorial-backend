@@ -34,16 +34,15 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Wrong password", http.StatusUnauthorized)
 		return
 	}
-	token, err:=createToken(u.Username)
+	authenticationToken, authorizationToken, err:= getAuthenticationAuthorizationTokens(u.Username)
 	if err!=nil{
-		http.Error(w, "Cannot create token", http.StatusInternalServerError)
-		return
+		http.Error(w, "Something wrong building tokens: "+err.Error(), http.StatusInternalServerError)
 	}
-	sendJSONResponse(w, struct {Token string `json:"token"`}{ token }, http.StatusOK)
 
-	
-	
+	sendJSONResponse(w, struct {AuthenticationToken string `json:"authentication_token"`; AuthorizationToken string `json:"authorization_token"`}{ authenticationToken, authorizationToken }, http.StatusOK)
 }
+
+
 
 func createUser(w http.ResponseWriter, r *http.Request){
 	log.Println("createUser called")
@@ -75,12 +74,13 @@ func createUser(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot insert user in database: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	token, err:=createToken(u.Username)
+	authenticationToken, authorizationToken, err:= getAuthenticationAuthorizationTokens(u.Username)
 	if err!=nil{
-		http.Error(w, "Cannot create token", http.StatusInternalServerError)
-		return
+		http.Error(w, "Something wrong building tokens: "+err.Error(), http.StatusInternalServerError)
 	}
-	sendJSONResponse(w, struct {Token string `json:"token"`}{ token }, http.StatusCreated)
+
+	sendJSONResponse(w, struct {AuthenticationToken string `json:"authentication_token"`; AuthorizationToken string `json:"authorization_token"`}{ authenticationToken, authorizationToken }, http.StatusCreated)
+
 }
 
 func getTokenByToken(w http.ResponseWriter, r *http.Request){
@@ -90,24 +90,24 @@ func getTokenByToken(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot check username", http.StatusInternalServerError)
 		return
 	}
-	token, err:=createToken(username)
+	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*15)
 	if err!=nil{
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
 	}
-	sendJSONResponse(w, struct {Token string}{ token }, http.StatusOK)
+	sendJSONResponse(w, struct {AuthorizationToken string `json:"authorization_token"`}{ authorizationToken }, http.StatusOK)
 }
 
-func createToken(username string) (string, error) {
+func createToken(username string, secret string, duration time.Duration) (string, error) {
   var err error
   //Creating Access Token
   
   atClaims := jwt.MapClaims{}
   atClaims["authorized"] = true
   atClaims["username"] = username
-  atClaims["exp"] = time.Now().Add(time.Minute * 15).Unix()
+  atClaims["exp"] = time.Now().Add(duration).Unix()
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	secret:= getSecret()
+	
   token, err := at.SignedString([]byte(secret))
   if err != nil {
      return "", err
@@ -116,3 +116,14 @@ func createToken(username string) (string, error) {
 }
 
 
+func getAuthenticationAuthorizationTokens(username string) (string, string, error){
+	authenticationToken, err:=createToken(username, getAuthenticationSecret(), time.Hour*24*15)
+		if err!=nil{
+		return "","", err
+	}
+	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*15)
+	if err!=nil{
+		return "","", err
+	}
+	return authenticationToken, authorizationToken, nil
+}
