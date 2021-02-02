@@ -40,8 +40,9 @@ func AddRouterEndpoints(r *mux.Router) *mux.Router {
 	r.HandleFunc("/api/posts/{POST_ID}", checkTokenHandler(deletePost)).Methods("DELETE")
 	r.HandleFunc("/api/posts/{POST_ID}/comments", checkTokenHandler(addComment)).Methods("POST")
 	r.HandleFunc("/api/auth/login", getTokenUserPassword).Methods("POST")
+	r.HandleFunc("/api/auth/logout", checkTokenAuthHandler(logout)).Methods("POST")
 	r.HandleFunc("/api/auth/create-user", createUser).Methods("POST")
-	r.HandleFunc("/api/auth/token", checkTokenHandler(getTokenByToken)).Methods("GET")
+	r.HandleFunc("/api/auth/token", checkTokenAuthHandler(getTokenByToken)).Methods("GET")
 	r.HandleFunc("/api/users/{USERNAME}", checkTokenHandler(getUser)).Methods("GET")
 	r.HandleFunc("/api/users/{USERNAME}", checkTokenHandler(editUserDescription)).Methods("PATCH")
 	return r
@@ -76,7 +77,7 @@ func checkTokenHandler(next http.HandlerFunc) http.HandlerFunc{
 			return
 		}
 		
-		token, ok :=checkToken(bearerToken[1]); 
+		token, ok :=checkToken(bearerToken[1], true); 
 		if !ok{
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -100,13 +101,17 @@ func checkTokenHandler(next http.HandlerFunc) http.HandlerFunc{
   }
 }
 
-func checkToken (tokenString string) (*jwt.Token, bool) {
+func checkToken (tokenString string, authorizationToken bool) (*jwt.Token, bool) {
 	 token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
      //Make sure that the token method conform to "SigningMethodHMAC"
      if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
         return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-     }
-     return []byte(getAuthorizationSecret()), nil
+		 }
+		 if authorizationToken{
+		 	return []byte(getAuthorizationSecret()), nil
+		 }else{
+			 return []byte(getAuthenticationSecret()), nil
+		 }
 	})
 	if err!=nil{
 		return nil, false
@@ -117,7 +122,42 @@ func checkToken (tokenString string) (*jwt.Token, bool) {
   }
 	return token, true
 }
-
+func checkTokenAuthHandler(next http.HandlerFunc) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
+		bearerToken := strings.Split(header, " ")
+		if len(bearerToken)!=2{
+			http.Error(w, "Cannot read token", http.StatusBadRequest)
+			return
+		}
+		if bearerToken[0] != "Bearer"{
+			http.Error(w, "Error in authorization token. it needs to be in form of 'Bearer <token>'", http.StatusBadRequest)
+			return
+		}
+		
+		token, ok :=checkToken(bearerToken[1], false); 
+		if !ok{
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if ok && token.Valid {
+			
+			username, ok := claims["username"].(string)
+			if !ok {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return 
+			}
+			//check if username actually exists
+			if _, err:= mdb.FindUser(r.Context(), username); err!=nil{
+				http.Error(w, "Unauthorized, user not exists", http.StatusUnauthorized)
+			}
+			//Set the username in the request, so I will use it in check after!
+			context.Set(r, "username", username)
+		}
+    next(w, r)
+  }
+}
 func isUsernameContextOk(username string, r *http.Request) bool {
 	usernameCtx, ok:=context.Get(r, "username").(string)
 	if !ok{

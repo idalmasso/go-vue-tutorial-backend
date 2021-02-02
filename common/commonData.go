@@ -12,6 +12,7 @@ type UserDB struct{
 	Username string  
 	PasswordHash []byte 
 	Description string 
+	AuthenticationToken string
 }
 //UserAPI is a struct used to be passed back to the user (so, no username and password hash needed here!)
 type UserAPI struct{

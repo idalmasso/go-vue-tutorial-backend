@@ -38,10 +38,14 @@ func getTokenUserPassword(w http.ResponseWriter, r *http.Request) {
 	if err!=nil{
 		http.Error(w, "Something wrong building tokens: "+err.Error(), http.StatusInternalServerError)
 	}
-
+	
+	user.AuthenticationToken = authenticationToken
+	if _, err=mdb.AddAuthenticationToken(r.Context(), user); err!=nil{
+		http.Error(w, "Cannot update user token in database: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	sendJSONResponse(w, struct {AuthenticationToken string `json:"authentication_token"`; AuthorizationToken string `json:"authorization_token"`}{ authenticationToken, authorizationToken }, http.StatusOK)
 }
-
 
 
 func createUser(w http.ResponseWriter, r *http.Request){
@@ -63,6 +67,7 @@ func createUser(w http.ResponseWriter, r *http.Request){
 	u.Username=user.Username
 	//fOr now empty desc... Maybe another time we'll add some way to update the user
 	u.Description = ""
+	
 	//If I'm here-> add user and return a token
 	value, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost); 
 	if err!=nil{
@@ -78,9 +83,32 @@ func createUser(w http.ResponseWriter, r *http.Request){
 	if err!=nil{
 		http.Error(w, "Something wrong building tokens: "+err.Error(), http.StatusInternalServerError)
 	}
-
+	u.AuthenticationToken = authenticationToken
+	if _, err=mdb.AddAuthenticationToken(r.Context(), u); err!=nil{
+		http.Error(w, "Cannot update user token in database: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	sendJSONResponse(w, struct {AuthenticationToken string `json:"authentication_token"`; AuthorizationToken string `json:"authorization_token"`}{ authenticationToken, authorizationToken }, http.StatusCreated)
+}
 
+func logout(w http.ResponseWriter, r *http.Request){
+	log.Println("logout called")
+	username, ok :=context.Get(r,"username").(string)
+	if !ok{
+		http.Error(w, "Cannot check username", http.StatusInternalServerError)
+		return
+	}
+	u, err:= mdb.FindUser(r.Context(), username)
+	if err!=nil{
+		http.Error(w, "Cannot find user", http.StatusBadRequest)
+		return
+	}
+	u.AuthenticationToken=""
+	if _, err:= mdb.AddAuthenticationToken(r.Context(), u); err!=nil{
+		http.Error(w, "Cannot update user", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func getTokenByToken(w http.ResponseWriter, r *http.Request){
@@ -90,7 +118,7 @@ func getTokenByToken(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Cannot check username", http.StatusInternalServerError)
 		return
 	}
-	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*15)
+	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*2)
 	if err!=nil{
 		http.Error(w, "Cannot create token", http.StatusInternalServerError)
 		return
@@ -121,7 +149,7 @@ func getAuthenticationAuthorizationTokens(username string) (string, string, erro
 		if err!=nil{
 		return "","", err
 	}
-	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*15)
+	authorizationToken, err:=createToken(username, getAuthorizationSecret(), time.Minute*2)
 	if err!=nil{
 		return "","", err
 	}

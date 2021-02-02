@@ -52,3 +52,21 @@ func EditUserDescription(c context.Context, user commonLib.UserDB) (commonLib.Us
 	return updatedUser, nil
 	
 }
+
+//AddAuthenticationToken adds the authenticationToken to the user
+func AddAuthenticationToken(c context.Context, user commonLib.UserDB) (commonLib.UserDB, error){
+		var updatedUser commonLib.UserDB
+	after := options.After
+	opt := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+	}
+	
+	result := UserCollection.FindOneAndUpdate(c, bson.M{"username": user.Username}, bson.M{"$set": bson.M{"AuthenticationToken": user.AuthenticationToken}} ,&opt);
+	if  result.Err()!=nil{
+		return user,  result.Err()
+	}
+	if err := result.Decode(&updatedUser); err != nil {
+		return user, fmt.Errorf("Cannot decode: %w", err)
+	}	
+	return updatedUser, nil
+}
